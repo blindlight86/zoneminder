@@ -1,3 +1,9 @@
+## 魔改
+原版GPU支持略复杂，因此将base image改成拥有原生CUDA环境的nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04。
+默认使用mlapi
+参考zmeventnotification和mlapi的开发者pliablepixels的建议文档https://gist.github.com/pliablepixels/9b9788ae5b5324a5cb6f161fd02e1f7f
+
+
 ## Zoneminder Docker
 (Current version: 1.34)
 
