@@ -18,7 +18,7 @@ ENV	PHP_VERS="7.4" \
 	PUID="99" \
 	PGID="100"
 
-RUN wget https://raw.githubusercontent.com/phusion/baseimage-docker/master/image/bin/my_init
+ADD https://raw.githubusercontent.com/phusion/baseimage-docker/master/image/bin/my_init
 COPY ./my_init /sbin/
 
 COPY init/ /etc/my_init.d/
