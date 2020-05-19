@@ -1,6 +1,6 @@
-FROM phusion/baseimage:0.11
+FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
 
-LABEL maintainer="dlandon"
+LABEL maintainer="blindlight"
 
 ENV	DEBCONF_NONINTERACTIVE_SEEN="true" \
 	DEBIAN_FRONTEND="noninteractive" \
@@ -18,10 +18,15 @@ ENV	PHP_VERS="7.4" \
 	PUID="99" \
 	PGID="100"
 
+RUN wget https://raw.githubusercontent.com/phusion/baseimage-docker/master/image/bin/my_init
+COPY ./my_init /sbin/
+
 COPY init/ /etc/my_init.d/
 COPY defaults/ /root/
 
-RUN	add-apt-repository -y ppa:iconnor/zoneminder-$ZM_VERS && \
+RUN	apt-get update && \
+    apt-get -y install --no-install-recommends software-properties-common runit-systemd && \
+	add-apt-repository -y ppa:iconnor/zoneminder-$ZM_VERS && \
 	add-apt-repository ppa:ondrej/php && \
 	apt-get update && \
 	apt-get -y upgrade -o Dpkg::Options::="--force-confold" && \
@@ -79,10 +84,7 @@ RUN	systemd-tmpfiles --create zoneminder.conf && \
 	cp /etc/apache2/ports.conf /etc/apache2/ports.conf.default && \
 	cp /etc/apache2/sites-enabled/default-ssl.conf /etc/apache2/sites-enabled/default-ssl.conf.default
 
-RUN	apt-get -y remove make && \
-	apt-get -y clean && \
-	apt-get -y autoremove && \
-	rm -rf /tmp/* /var/tmp/* && \
+RUN	rm -rf /tmp/* /var/tmp/* && \
 	chmod +x /etc/my_init.d/*.sh
 
 VOLUME \

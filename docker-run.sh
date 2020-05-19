@@ -5,7 +5,7 @@ docker run -d --name="Zoneminder" \
 --privileged="true" \
 -p 8443:443/tcp \
 -p 9000:9000/tcp \
--e TZ="America/New_York" \
+-e TZ="Asia/Shanghai" \
 -e SHMEM="50%" \
 -e PUID="99" \
 -e PGID="100" \
@@ -15,6 +15,6 @@ docker run -d --name="Zoneminder" \
 -e INSTALL_YOLO="0" \
 -e MULTI_PORT_START="0" \
 -e MULTI_PORT_END="0" \
--v "/mnt/cache/appdata/Zoneminder":"/config":rw \
--v "/mnt/cache/appdata/Zoneminder/data":"/var/cache/zoneminder":rw \
+-v "/home/blindlight/Docker/zm/config":"/config":rw \
+-v "/home/blindlight/Docker/zm/data":"/var/cache/zoneminder":rw \
 zoneminder

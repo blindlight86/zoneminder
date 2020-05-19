@@ -13,7 +13,7 @@ if [ "`cat /tmp/test_update | grep 'Failed'`" = "" ]; then
 	apt-get -y upgrade -o Dpkg::Options::="--force-confold"
 
 	# Clean + purge old/obsoleted packages
-	apt-get -y autoremove
+	# apt-get -y autoremove
 else
 	echo "Warning: Unable to update!  Check Internet connection."
 fi

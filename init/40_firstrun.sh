@@ -35,7 +35,7 @@ if [ -f /root/zmeventnotification/zmeventnotification.ini ]; then
 	echo "Moving zmeventnotification.ini"
 	cp /root/zmeventnotification/zmeventnotification.ini /config/zmeventnotification.ini.default
 	if [ ! -f /config/zmeventnotification.ini ]; then
-		mv /root/zmeventnotification/zmeventnotification.ini /config/zmeventnotification.ini
+		wget https://raw.githubusercontent.com/blindlight86/zmeventnotification/master/zmeventnotification.ini -O /config/zmeventnotification.ini
 	else
 		rm -rf /root/zmeventnotification/zmeventnotification.ini
 	fi
@@ -48,6 +48,7 @@ if [ -f /root/zmeventnotification/secrets.ini ]; then
 	echo "Moving secrets.ini"
 	cp /root/zmeventnotification/secrets.ini /config/secrets.ini.default
 	if [ ! -f /config/secrets.ini ]; then
+		wget https://raw.githubusercontent.com/blindlight86/zmeventnotification/master/secrets.ini -O /config/secrets.ini
 		mv /root/zmeventnotification/secrets.ini /config/secrets.ini
 	else
 		rm -rf /root/zmeventnotification/secrets.ini
@@ -351,7 +352,6 @@ if [ "$INSTALL_HOOK" == "1" ]; then
 		# pip3 will take care of installing dependent packages
 		pip3 install future
 		pip3 install /root/zmeventnotification
-		pip3 install opencv-contrib-python
 	else
 		pip3 uninstall -y zmes-hooks
 		pip3 install /root/zmeventnotification
@@ -388,7 +388,7 @@ if [ "$INSTALL_HOOK" == "1" ]; then
 		echo "Moving objectconfig.ini"
 		cp /root/zmeventnotification/objectconfig.ini /config/hook/objectconfig.ini.default
 		if [ ! -f /config/hook/objectconfig.ini ]; then
-			mv /root/zmeventnotification/objectconfig.ini /config/hook/objectconfig.ini
+			wget https://raw.githubusercontent.com/blindlight86/zmeventnotification/master/hook/objectconfig.ini -O /config/hook/objectconfig.ini
 		else
 			rm -rf /root/zmeventnotification/objectconfig.ini
 		fi
@@ -456,7 +456,36 @@ if [ "$INSTALL_HOOK" == "1" ]; then
 
 		# Install for face recognition
 		apt-get -y install libopenblas-dev liblapack-dev libblas-dev
- 		pip3 install face_recognition
+		echo "Please run /config/opencv/opencv.sh to get GPU support"
+	fi
+
+	if [ "$INSTALL_MLAPI" == "1" ]; then
+		echo "Installing machine learning api gateway..."
+		
+		if [ ! -d /config/mlapi ]; then
+			# Install for mlapi
+			apt-get -y install nano git
+			git clone https://github.com/blindlight86/mlapi.git
+			pip3 install -r /root/mlapi/requirements.txt
+
+			echo "Creating mlapi folder in config folder"
+			mkdir -p /config/mlapi
+
+			# Symbolic link for mlapi files in /config
+			ln -sf /root/mlapi/mlapi.py /config/mlapi/
+			ln -sf /root/mlapi/mlapi_adduser.py /config/mlapi/
+			ln -sf /root/mlapi/mlapiconfig_zm.ini /config/mlapi/
+
+			chown -R $PUID:$PGID /config/mlapi
+			chmod -R 777 /config/mlapi
+			chown -R www-data:www-data /config/mlapi
+			chmod +x /config/mlapi/*
+		fi
+
+		if [ ! -f /config/mlapi/mlapi_ok ]; then
+			echo "no" > /config/opencv/mlapi
+		fi
+
 	fi
 
 	echo "Hook installation completed"
@@ -468,6 +497,17 @@ if [ "$INSTALL_HOOK" == "1" ]; then
 				/config/opencv/opencv.sh quiet >/dev/null &
 			fi
 		fi
+	fi
+
+	# run mlapi gateway
+	if [ ! -f /etc/init.d/mlapi ]; then
+		if [ 'cat /config/mlapi/mlapi_ok' = 'yes' ]; then
+			cp /config/mlapi/mlapi /etc/init.d/mlapi
+			chmod +x /etc/init.d/mlapi
+			sed -i -e 's/\r//g' /etc/init.d/mlapi
+		fi
+	else
+		service mlapi start
 	fi
 
 	mv /root/zmeventnotification/setup.py /root/setup.py
