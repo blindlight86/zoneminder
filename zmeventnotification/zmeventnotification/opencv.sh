@@ -19,24 +19,6 @@
 #
 # The GPU architectures supported with cuda version 10.2 are all >= 3.0.
 #
-# Download the cuDNN run time and dev packages for your GPU configuration.  You want the deb packages for Ubuntu 18.04.
-# You wll need to have an account with Nvidia to download these packages.
-# https://developer.nvidia.com/rdp/form/cudnn-download-survey
-# Place them in the /config/opencv/ folder.
-#
-CUDNN_RUN=libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
-CUDNN_DEV=libcudnn7-dev_7.6.5.32-1+cuda10.2_amd64.deb
-#
-# Download the cuda tools package.  Unraid uses 10.2.  You want the deb package for Ubuntu 18.04.
-# https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu&target_version=1804&target_type=deblocal
-# Place the download in the /config/opencv/ folder.
-#
-CUDA_TOOL=cuda-repo-ubuntu1804-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
-CUDA_PIN=cuda-ubuntu1804.pin
-CUDA_KEY=/var/cuda-repo-10-2-local-10.2.89-440.33.01/7fa2af80.pub
-CUDA_VER=10.2
-#
-#
 # Github URL for opencv zip file download.
 # Current default is to pull the version 4.2.0 release.
 #   Note: You shouldn't need to change these.
@@ -138,35 +120,10 @@ fi
 pip3 uninstall -y opencv-contrib-python
 if [ "$INSTALL_FACE" == "1" ]; then
 	pip3 uninstall -y face-recognition
+	pip3 uninstall -y dlib
 fi
 
 logger "Compiling opencv with GPU Support" -tEventServer
-
-#
-# Install cuda toolkit
-#
-logger "Installing cuda toolkit..." -tEventServer
-cd ~
-if [ -f  /config/opencv/$CUDA_PIN ]; then
-	cp /config/opencv/$CUDA_PIN /etc/apt/preferences.d/cuda-repository-pin-600
-else
-	echo "Please download CUDA_PIN."
-	logger "CUDA_PIN not downloaded!" -tEventServer
-	exit
-fi
-
-if [ -f /config/opencv/$CUDA_TOOL ];then
-	dpkg -i /config/opencv/$CUDA_TOOL
-else
-	echo "Please download CUDA_TOOL package."
-	logger "CUDA_TOOL package not downloaded!" -tEventServer
-	exit
-fi
-
-apt-key add $CUDA_KEY >/dev/null
-apt-get update
-apt-get -y upgrade -o Dpkg::Options::="--force-confold"
-apt-get -y install cuda-toolkit-$CUDA_VER
 
 echo "export PATH=/usr/local/cuda/bin:$PATH" >/etc/profile.d/cuda.sh
 echo "export LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:/usr/local/lib:$LD_LIBRARY_PATH" >> /etc/profile.d/cuda.sh
@@ -174,18 +131,6 @@ echo "export CUDADIR=/usr/local/cuda" >> /etc/profile.d/cuda.sh
 echo "export CUDA_HOME=/usr/local/cuda" >> /etc/profile.d/cuda.sh
 echo "/usr/local/cuda/lib64" > /etc/ld.so.conf.d/cuda.conf
 ldconfig
-
-#
-# check for expected install location
-#
-CUDADIR=/usr/local/cuda-$CUDA_VER
-if [ ! -d "$CUDADIR" ]; then
-	echo "Failed to install cuda toolkit!"
-    logger "Failed to install cuda toolkit!" -tEventServer
-    exit
-elif [ ! -L "/usr/local/cuda" ]; then
-    ln -s $CUDADIR /usr/local/cuda
-fi
 
 logger "Cuda toolkit installed" -tEventServer
 
@@ -208,48 +153,40 @@ else
 	echo "'nvidia-smi' not found!  Check that the Nvidia drivers are installed."
 	logger "'nvidia-smi' not found!  Check that the Nvidia drivers are installed." -tEventServer
 fi
-#
-# Install cuDNN run time and dev packages
-#
-logger "Installing cuDNN Package..." -tEventServer
-#
-if [ -f /config/opencv/$CUDNN_RUN ];then
-	dpkg -i /config/opencv/$CUDNN_RUN
-else
-	echo "Please download CUDNN_RUN package."
-	logger "CUDNN_RUN package not downloaded!" -tEventServer
-	exit
-fi
-if [ -f /config/opencv/$CUDNN_DEV ];then
-	dpkg -i /config/opencv/$CUDNN_DEV
-else
-	echo "Please download CUDNN_DEV package."
-	logger "CUDNN_DEV package not downloaded!" -tEventServer
-	exit
-fi
-logger "cuDNN Package installed" -tEventServer
 
 #
 # Compile opencv with cuda support
 #
 logger "Installing cuda support packages..." -tEventServer
 apt-get -y install libjpeg-dev libpng-dev libtiff-dev libavcodec-dev libavformat-dev libswscale-dev
-apt-get -y install libv4l-dev libxvidcore-dev libx264-dev libgtk-3-dev libatlas-base-dev gfortran
+apt-get -y install libv4l-dev libxvidcore-dev libx264-dev libgtk-3-dev libatlas-base-dev gfortran git
 logger "Cuda support packages installed" -tEventServer
 
 #
 # Get opencv source
 #
 logger "Downloading opencv source..." -tEventServer
-wget -q -O opencv.zip $OPENCV_URL
-wget -q -O opencv_contrib.zip $OPENCV_CONTRIB_URL
-unzip opencv.zip
-unzip opencv_contrib.zip
-mv $(ls -d opencv-*) opencv
-mv opencv_contrib-4.2.0 opencv_contrib
-rm *.zip
+if [ ! -d ./opencv ];then
+	if [ ! -f opencv.zip ];then
+		wget -q -O opencv.zip $OPENCV_URL
+	fi
+	unzip opencv.zip
+	mv $(ls -d opencv-*) opencv
+else
+	echo "opencv exist"
+fi
 
-cd ~/opencv
+if [ ! -d ./opencv_contrib ];then
+	if [ ! -f opencv_contrib.zip ];then
+		wget -q -O opencv_contrib.zip $OPENCV_CONTRIB_URL
+	fi
+	unzip opencv_contrib.zip
+	mv opencv_contrib-4.2.0 opencv_contrib
+else
+	echo "opencv_contrib exist"
+fi
+
+cd opencv
 mkdir build
 cd build
 logger "Opencv source downloaded" -tEventServer
@@ -273,7 +210,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
 	-D ENABLE_FAST_MATH=1 \
 	-D CUDA_FAST_MATH=1 \
 	-D WITH_CUBLAS=1 \
-	-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib/modules \
+	-D OPENCV_EXTRA_MODULES_PATH=/config/opencv/opencv_contrib/modules \
 	-D HAVE_opencv_python3=ON \
 	-D PYTHON_EXECUTABLE=/usr/bin/python3 \
 	-D PYTHON2_EXECUTABLE=/usr/bin/python2 \
@@ -300,10 +237,16 @@ logger "Installing opencv..." -tEventServer
 make install
 ldconfig
 
+cd /config
 #
 # Now reinstall face-recognition package to ensure it detects GPU.
 #
 if [ "$INSTALL_FACE" == "1" ]; then
+	git clone -b 'v19.19' --single-branch https://github.com/davisking/dlib.git
+	mkdir -p ./dlib/build
+	cmake -H./dlib -B./dlib/build -DDLIB_USE_CUDA=1 -DUSE_AVX_INSTRUCTIONS=1
+	cmake --build ./dlib/build
+	cd ./dlib; python3 ./dlib/setup.py install
 	pip3 install face-recognition
 fi
 
@@ -312,8 +255,9 @@ fi
 #
 logger "Cleaning up..." -tEventServer
 
-cd ~
-rm -r opencv*
+cd /config/opencv
+# rm -r opencv*
+rm *.zip
 rm /etc/my_init.d/20_apt_update.sh
 
 logger "Opencv compile completed" -tEventServer
@@ -324,6 +268,10 @@ if [ $QUIET_MODE != 'yes' ];then
 	echo "Execute the following commands:"
 	echo "  python3"
 	echo "  import cv2"
+	echo "  import dlib"
+	echo "  print(cv2.getBuildInformation())"
+	echo "  print(dlib.cuda.get_num_devices())"
+	echo "  dlib.DLIB_USE_CUDA"
 	echo "  Ctrl-D to exit"
 	echo
 	echo "Verify that the import does not show errors."

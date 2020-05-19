@@ -18,9 +18,6 @@ ENV	PHP_VERS="7.4" \
 	PUID="99" \
 	PGID="100"
 
-ADD https://raw.githubusercontent.com/phusion/baseimage-docker/master/image/bin/my_init my_init
-COPY ./my_init /sbin/
-
 COPY init/ /etc/my_init.d/
 COPY defaults/ /root/
 
@@ -32,7 +29,7 @@ RUN	apt-get update && \
 	apt-get -y upgrade -o Dpkg::Options::="--force-confold" && \
 	apt-get -y dist-upgrade -o Dpkg::Options::="--force-confold" && \
 	apt-get -y install apache2 mariadb-server && \
-	apt-get -y install ssmtp mailutils net-tools wget sudo make && \
+	apt-get -y install ssmtp mailutils net-tools wget curl sudo make && \
 	apt-get -y install php$PHP_VERS php$PHP_VERS-fpm libapache2-mod-php$PHP_VERS php$PHP_VERS-mysql php$PHP_VERS-gd && \
 	apt-get -y install libcrypt-mysql-perl libyaml-perl libjson-perl libavutil-dev && \
 	apt-get -y install --no-install-recommends libvlc-dev libvlccore-dev vlc
@@ -86,6 +83,9 @@ RUN	systemd-tmpfiles --create zoneminder.conf && \
 
 RUN	rm -rf /tmp/* /var/tmp/* && \
 	chmod +x /etc/my_init.d/*.sh
+
+RUN curl https://raw.githubusercontent.com/phusion/baseimage-docker/master/image/bin/my_init -o /sbin/my_init && \
+	chmod +x /sbin/my_init
 
 VOLUME \
 	["/config"] \
