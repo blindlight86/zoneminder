@@ -3,6 +3,43 @@
 默认使用mlapi
 参考zmeventnotification和mlapi的开发者pliablepixels的建议文档https://gist.github.com/pliablepixels/9b9788ae5b5324a5cb6f161fd02e1f7f
 
+### 安装步骤
+```
+docker pull blindlight/zoneminder
+```
+更改docker-compose.yaml中两个volume路径，创建容器
+```
+docker-compose up
+```
+进入容器
+```
+docker exec -it zoneminder-gpu /bin/bash
+```
+进入对应文件夹，编译支持CUDA的opencv和dlib（需要较长时间），请按脚本提示操作
+```
+cd /config/opencv
+./opencv.sh
+```
+成功后运行
+```
+echo "yes" > opencv_ok
+```
+在zm设置中开启OPT_USE_EVENTNOTIFICATION，此设置允许zmeventnotification自启动
+
+设置相应zmeventnotification.ini中的各推送设置，推荐先使用mqtt以测试功能
+
+机器学习网关首次需手动运行
+```
+cd /config/mlapi
+python3 mlapi.py -c mlapiconfig_zm.ini
+```
+将设置的用户名密码填入sercret.ini中对应的ML_USER和ML_PASSWORD，并重启容器
+
+再次运行mlapi，设置zm中摄像头，观察输出，成功后运行
+```
+echo "yes" > mlapi_ok
+```
+再次重启后所有服务将自动运行
 
 ## Zoneminder Docker
 (Current version: 1.34)

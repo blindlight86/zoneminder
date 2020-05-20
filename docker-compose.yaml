@@ -1,28 +1,27 @@
-version: '3.1'
+version: '2.3'
 services:
     zoneminder:
-        container_name: zoneminder
-        image: dlandon/zoneminder:latest
+        container_name: zoneminder-gpu
+        image: blindlight/zoneminder
         restart: unless-stopped
         ports:
             - 8443:443/tcp
             - 9000:9000/tcp
+        runtime: nvidia
         network_mode: "bridge"
         privileged: true
         environment:
-            - TZ=America/New_York
+            - TZ=Asia/Shanghai
             - SHMEM=50%
             - PUID=99
             - PGID=100
-            - INSTALL_HOOK=0
-            - INSTALL_FACE=0
+            - INSTALL_HOOK=1
+            - INSTALL_FACE=1
             - INSTALL_TINY_YOLO=0
-            - INSTALL_YOLO=0
+            - INSTALL_YOLO=1
+            - INSTALL_MLAPI=1
             - MULTI_PORT_START=0
             - MULTI_PORT_END=0
         volumes:
-            - config:/config:rw
-            - data:/var/cache/zoneminder:rw
-volumes:
-    config:
-    data:
+            - /home/blindlight/Docker/zm2/config:/config
+            - /home/blindlight/Docker/zm2/data:/var/cache/zoneminder

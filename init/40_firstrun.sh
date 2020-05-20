@@ -49,7 +49,6 @@ if [ -f /root/zmeventnotification/secrets.ini ]; then
 	cp /root/zmeventnotification/secrets.ini /config/secrets.ini.default
 	if [ ! -f /config/secrets.ini ]; then
 		wget https://raw.githubusercontent.com/blindlight86/zmeventnotification/master/secrets.ini -O /config/secrets.ini
-		mv /root/zmeventnotification/secrets.ini /config/secrets.ini
 	else
 		rm -rf /root/zmeventnotification/secrets.ini
 	fi
@@ -68,7 +67,7 @@ if [ -f /root/zmeventnotification/opencv.sh ]; then
 	echo "Moving opencv.sh"
 	cp /root/zmeventnotification/opencv.sh /config/opencv/opencv.sh.default
 	if [ ! -f /config/opencv/opencv.sh ]; then
-		mv /root/zmeventnotification/opencv.sh /config/opencv/opencv.sh
+		wget https://raw.githubusercontent.com/blindlight86/zoneminder/master/zmeventnotification/zmeventnotification/opencv.sh -O /config/opencv/opencv.sh
 	else
 		rm -rf /root/zmeventnotification/opencv.sh
 	fi
@@ -438,6 +437,13 @@ if [ "$INSTALL_HOOK" == "1" ]; then
 	ln -sf /config/hook/known_faces /var/lib/zmeventnotification/known_faces
 	chown -R www-data:www-data /var/lib/zmeventnotification/known_faces
 
+	# Create unknown_faces in /config
+	mkdir -p /config/hook/unknown_faces
+	ln -sf /config/hook/unknown_faces /var/lib/zmeventnotification/unknown_faces
+	chown -R www-data:www-data /config/hook/unknown_faces
+	chown -R www-data:www-data /var/lib/zmeventnotification/unknown_faces
+
+
 	# Symbolic link for hook files in /config
 	mkdir -p /var/lib/zmeventnotification/bin
 	ln -sf /config/hook/zm_detect.py /var/lib/zmeventnotification/bin/zm_detect.py
@@ -471,10 +477,8 @@ if [ "$INSTALL_HOOK" == "1" ]; then
 			echo "Creating mlapi folder in config folder"
 			mkdir -p /config/mlapi
 
-			# Symbolic link for mlapi files in /config
-			ln -sf /root/mlapi/mlapi.py /config/mlapi/
-			ln -sf /root/mlapi/mlapi_adduser.py /config/mlapi/
-			ln -sf /root/mlapi/mlapiconfig_zm.ini /config/mlapi/
+			# Copy mlapi files in /config
+			cp -rf /root/mlapi/* /config/mlapi/
 
 			chown -R $PUID:$PGID /config/mlapi
 			chmod -R 777 /config/mlapi
@@ -483,7 +487,7 @@ if [ "$INSTALL_HOOK" == "1" ]; then
 		fi
 
 		if [ ! -f /config/mlapi/mlapi_ok ]; then
-			echo "no" > /config/opencv/mlapi
+			echo "no" > /config/mlapi/mlapi_ok
 		fi
 
 	fi
@@ -493,16 +497,17 @@ if [ "$INSTALL_HOOK" == "1" ]; then
 	# compile opencv
 	if [ ! -f /root/setup.py ]; then
 		if [ `cat /config/opencv/opencv_ok` = 'yes' ]; then
-			if [ -x /config/opencv/opencv.sh ]; then
-				/config/opencv/opencv.sh quiet >/dev/null &
-			fi
+			ehco "Please continous to run mlapi mannually for the first time"
+			# if [ -x /config/opencv/opencv.sh ]; then
+			# 	/config/opencv/opencv.sh quiet >/dev/null &
+			# fi
 		fi
 	fi
 
 	# run mlapi gateway
 	if [ ! -f /etc/init.d/mlapi ]; then
 		if [ 'cat /config/mlapi/mlapi_ok' = 'yes' ]; then
-			cp /config/mlapi/mlapi /etc/init.d/mlapi
+			cp -rf /config/mlapi/mlapi /etc/init.d/mlapi
 			chmod +x /etc/init.d/mlapi
 			sed -i -e 's/\r//g' /etc/init.d/mlapi
 		fi
